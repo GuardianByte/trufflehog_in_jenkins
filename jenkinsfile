@@ -1,0 +1,27 @@
+#!/usr/bin/env groovy
+
+import hudson.EnvVars
+//define var for job
+
+def git_secrets(){
+  stage name:'update app version'
+       sh '''
+        rm trufflehog_report.html || true
+        docker pull  trufflesecurity/trufflehog
+        docker run -v "$PWD:/pwd" trufflesecurity/trufflehog:latest github --repo https://${token}@github.com/elarahq/${GIT_REPO}.git --only-verified --debug > trufflehog_report.html
+        cat trufflehog_report.html
+       '''
+}
+
+def docker_clean(){
+  stage name:'docker_clean'
+       sh '''
+        docker ps -a -f status=exited
+        docker rm $(docker ps -a -f status=exited -q)
+       '''
+}
+
+node("dev-mini-housing-jenkins-slave") {
+    git_secrets()
+    docker_clean()
+ }
